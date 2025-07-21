@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One Piece Characters</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+      background: #f4f4f4;
+    }
+    h2 {
+      color: #e74c3c;
+    }
+    input {
+      padding: 10px;
+      width: 250px;
+      margin: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #e67e22;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin: 5px;
+    }
+    button:hover {
+      background: #d35400;
+    }
+    button.secondary {
+      background: #3498db;
+    }
+    button.secondary:hover {
+      background: #2980b9;
+    }
+    .card {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 15px;
+      margin: 10px;
+      width: 220px;
+      display: inline-block;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    .filter-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .filter-button {
+      padding: 8px 15px;
+      background: #95a5a6;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s;
+    }
+    .filter-button:hover {
+      background: #7f8c8d;
+      transform: translateY(-2px);
+    }
+    .filter-button.active {
+      background: #27ae60;
+    }
+    .category-title {
+      color: #2c3e50;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>One Piece Character Search</h2>
+  <input type="text" id="search" placeholder="Type a name...">
+  <button onclick="search()">Search</button>
+  <button class="secondary" onclick="loadAllCharacters()">List All Characters</button>
+
+  <!-- Category Filter Section -->
+  <div class="filter-section">
+    <div class="category-title">Filter by Pirate Crew:</div>
+    <div class="filter-buttons" id="crew-filters">
+      <button class="filter-button" onclick="loadAllCharacters()">All Crews</button>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="category-title">Filter by Devil Fruit:</div>
+    <div class="filter-buttons" id="devil-fruit-filters">
+      <button class="filter-button" onclick="loadAllCharacters()">All Fruits</button>
+      <button class="filter-button" onclick="filterByNoDevilFruit()">No Devil Fruit</button>
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    const searchInput = document.getElementById('search');
+    searchInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') search();
+    });
+
+    // 🔄 Character name-to-image mapping
+    const imageMap = {
+      "Monkey D. Luffy": "https://static.wikia.nocookie.net/onepiece/images/6/6d/Monkey_D._Luffy_Anime_Post_Timeskip_Infobox.png",
+      "Roronoa Zoro": "https://tse3.mm.bing.net/th/id/OIP.eT8DNM1XjF8bkwjdUXnYOwHaEK?pid=Api&P=0&h=180",
+      "Nami": "https://tse4.mm.bing.net/th/id/OIP.WOyf7PbO0-SfizvzY2E1SgHaE8?pid=Api&P=0&h=18",
+      "Sanji": "https://tse3.mm.bing.net/th/id/OIP.Re7p66eKaxAiX9TTFJVc-wHaEK?pid=Api&P=0&h=180",
+      "Usopp": "https://tse2.mm.bing.net/th/id/OIP.q2PKO2oQa6Sy4UBcekit9AHaE8?pid=Api&P=0&h=180",
+      "Tony Tony Chopper": "http://pre04.deviantart.net/35d0/th/pre/i/2015/113/2/9/tony_tony_chopper_by_donaco-d5uyx0q.jpg",
+      "Nico Robin": "https://tse1.mm.bing.net/th/id/OIP.1tyCeY2MlhsiOwpFGdiPPAHaEo?pid=Api&P=0&h=180",
+      "Franky": "https://tse3.mm.bing.net/th/id/OIP.8S8vGvr_5__lmokrC51k-QHaEK?pid=Api&P=0&h=180",
+      "Brook": "https://tse1.mm.bing.net/th/id/OIP.nj2i6mygP9y5HVT70zGHSQHaEK?pid=Api&P=0&h=180",
+      "Jinbe": "https://tse4.mm.bing.net/th/id/OIP.F3IT8gJmlxDi4h8inDuY2gHaFO?pid=Api&P=0&h=180",
+      "Shanks": "https://tse1.mm.bing.net/th/id/OIP.IcXMTz7XWpMkobn9sq8OWQHaF7?pid=Api&P=0&h=180",
+      "Trafalgar Law": "https://tse4.mm.bing.net/th/id/OIP.f5lvAkzGzgUpZuLhn1ZqNwHaEK?pid=Api&P=0&h=180",
+      "Eustass Kid": "https://tse4.mm.bing.net/th/id/OIP.cyMyoNjFjIOX2Q5xBoeBiAHaF7?pid=Api&P=0&h=180",
+      "Portgas D. Ace": "https://tse3.mm.bing.net/th/id/OIP.e21ytk9yEjrAexSRTq2q4AHaGA?pid=Api&P=0&h=180",
+      "Sabo": "https://tse1.mm.bing.net/th/id/OIP.Y6tD7n8g9Rj3Lkt2G_y66AHaHa?pid=Api&P=0&h=180",
+      "Buggy": "https://tse2.mm.bing.net/th/id/OIP.dAODFUp7_gNg5U1m1dgA7wHaEc?pid=Api&P=0&h=180",
+      "Kaido": "https://tse4.mm.bing.net/th/id/OIP.a6YwmrVDXLd1jxyoR23Z7QHaEK?pid=Api&P=0&h=180",
+      "Big Mom": "https://tse4.mm.bing.net/th/id/OIP.IM0vfFk6_o-Vf73N9JR1sgHaGo?pid=Api&P=0&h=180",
+      "Blackbeard": "https://tse3.mm.bing.net/th/id/OIP.xw5WNimWMSrkVw4otKnm1gHaHT?pid=Api&P=0&h=180",
+      "Boa Hancock": "https://tse1.mm.bing.net/th/id/OIP.vOiYGNiXNFjUJtuCCPtnFwHaD9?pid=Api&P=0&h=180"
+    };
+
+   
+    const getImageUrl = (name) => {
+      return imageMap[name] || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=100&background=e67e22&color=ffffff`;
+    };
+
+    function search() {
+      const query = searchInput.value.trim();
+      const container = document.getElementById('results');
+
+      if (!query) {
+        alert('Please enter a character name to search');
+        return;
+      }
+
+      container.innerHTML = '<p>Searching...</p>';
+      clearActiveFilters();
+
+      fetch(`/search?q=${encodeURIComponent(query)}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (data.length === 0) {
+            container.innerHTML = '<p>No characters found.</p>';
+            return;
+          }
+          displayCharacters(data, `Search Results for "${query}" (${data.length} found)`);
+        })
+        .catch(err => {
+          console.error('Search error:', err);
+          container.innerHTML = '<p style="color:red;">Failed to fetch data. Please try again.</p>';
+        });
+    }
+
+        function loadAllCharacters() {
+          const container = document.getElementById('results');
+          container.innerHTML = '<p>Loading all characters...</p>';
+
+          // Clear active filters
+          clearActiveFilters();
+
+          fetch('/search?q=')
+            .then(res => {
+              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+              return res.json();
+            })
+            .then(data => {
+              displayCharacters(data, `All One Piece Characters (${data.length} total)`);
+            })
+            .catch(err => {
+              console.error('Load all characters error:', err);
+              container.innerHTML = '<p style="color:red;">Failed to load characters. Please try again.</p>';
+            });
+        }
+
+        // Load filter options when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+          loadCrewFilters();
+          loadDevilFruitFilters();
+        });
+
+        function loadCrewFilters() {
+          fetch('/crews')
+            .then(res => res.json())
+            .then(crews => {
+              const container = document.getElementById('crew-filters');
+              crews.forEach(crew => {
+                const button = document.createElement('button');
+                button.className = 'filter-button';
+                button.textContent = crew;
+                button.onclick = () => filterByCrew(crew);
+                container.appendChild(button);
+              });
+            })
+            .catch(err => console.error('Error loading crews:', err));
+        }
+
+        function loadDevilFruitFilters() {
+          fetch('/devil-fruits')
+            .then(res => res.json())
+            .then(fruits => {
+              const container = document.getElementById('devil-fruit-filters');
+              fruits.forEach(fruit => {
+                const button = document.createElement('button');
+                button.className = 'filter-button';
+                button.textContent = fruit;
+                button.onclick = () => filterByDevilFruit(fruit);
+                container.appendChild(button);
+              });
+            })
+            .catch(err => console.error('Error loading devil fruits:', err));
+        }
+
+        function filterByCrew(crew) {
+          const container = document.getElementById('results');
+          container.innerHTML = `<p>Loading ${crew} members...</p>`;
+
+          // Update active button
+          document.querySelectorAll('#crew-filters .filter-button').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent === crew) btn.classList.add('active');
+          });
+
+          fetch(`/filter/crew/${encodeURIComponent(crew)}`)
+            .then(res => res.json())
+            .then(data => {
+              displayCharacters(data, `${crew} Members (${data.length} total)`);
+            })
+            .catch(err => {
+              console.error('Filter error:', err);
+              container.innerHTML = '<p style="color:red;">Failed to filter characters. Please try again.</p>';
+            });
+        }
+
+        function filterByDevilFruit(fruit) {
+          const container = document.getElementById('results');
+          container.innerHTML = `<p>Loading ${fruit} users...</p>`;
+
+          // Update active button
+          document.querySelectorAll('#devil-fruit-filters .filter-button').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent === fruit) btn.classList.add('active');
+          });
+
+          fetch(`/filter/devil-fruit/${encodeURIComponent(fruit)}`)
+            .then(res => res.json())
+            .then(data => {
+              displayCharacters(data, `${fruit} Users (${data.length} total)`);
+            })
+            .catch(err => {
+              console.error('Filter error:', err);
+              container.innerHTML = '<p style="color:red;">Failed to filter characters. Please try again.</p>';
+            });
+        }
+
+        function filterByNoDevilFruit() {
+          const container = document.getElementById('results');
+          container.innerHTML = '<p>Loading non-devil fruit users...</p>';
+
+          // Update active button
+          document.querySelectorAll('#devil-fruit-filters .filter-button').forEach(btn => {
+            btn.classList.remove('active');
+          });
+          event.target.classList.add('active');
+
+          fetch('/search?q=')
+            .then(res => res.json())
+            .then(data => {
+              const noDevilFruitUsers = data.filter(char => !char.devil_fruit || char.devil_fruit === '');
+              displayCharacters(noDevilFruitUsers, `Non-Devil Fruit Users (${noDevilFruitUsers.length} total)`);
+            })
+            .catch(err => {
+              console.error('Filter error:', err);
+              container.innerHTML = '<p style="color:red;">Failed to filter characters. Please try again.</p>';
+            });
+        }
+
+        function displayCharacters(data, title) {
+          const container = document.getElementById('results');
+          container.innerHTML = '';
+
+          if (data.length === 0) {
+            container.innerHTML = '<p>No characters found for this filter.</p>';
+            return;
+          }
+
+          // Add a header showing the filter and count
+          const headerElement = document.createElement('div');
+          headerElement.innerHTML = `<h3 style="color: #e74c3c; margin-bottom: 20px;">${title}</h3>`;
+          container.appendChild(headerElement);
+
+          data.forEach(c => {
+            const imageUrl = getImageUrl(c.name);
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            cardElement.innerHTML = `
+              <img src="${imageUrl}" 
+                   alt="${c.name}" 
+                   onerror="this.src='https://via.placeholder.com/100x100?text=OP'">
+              <h3>${c.name}</h3>
+              <p><strong>Bounty:</strong> ${c.bounty || 'Unknown'}</p>
+              ${c.devil_fruit ? `<p><strong>Devil Fruit:</strong> ${c.devil_fruit}</p>` : '<p><strong>Devil Fruit:</strong> None</p>'}
+              ${c.crew ? `<p><strong>Crew:</strong> ${c.crew}</p>` : ''}
+            `;
+            container.appendChild(cardElement);
+          });
+        }
+
+        function clearActiveFilters() {
+          document.querySelectorAll('.filter-button').forEach(btn => {
+            btn.classList.remove('active');
+          });
+        }
+      </script>
+</body>
+</html>
